@@ -1,6 +1,5 @@
 import type { GetPublishedPostsParams, Post, TagFilterItem } from '@/types/blog';
 import { Client, isFullDatabase, isFullUser, PageObjectResponse } from '@notionhq/client';
-import { unstable_cache } from 'next/cache';
 
 import { NotionToMarkdown } from 'notion-to-md';
 
@@ -44,51 +43,48 @@ const getAuthorName = (
   return '';
 };
 
-export const getPublishedPosts = unstable_cache(
-  async (params?: GetPublishedPostsParams) => {
-    const dataSourceId = await getDataSourceId();
-    const tag = params?.tag || '전체';
-    const sort = params?.sort || 'latest';
-    const response = await notion.dataSources.query({
-      data_source_id: dataSourceId,
-      filter: {
-        and: [
-          {
-            property: 'Status',
-            select: {
-              equals: 'Published',
-            },
-          },
-          ...(tag && tag !== '전체'
-            ? [
-                {
-                  property: 'Tags',
-                  multi_select: {
-                    contains: tag,
-                  },
-                },
-              ]
-            : []),
-        ],
-      },
-      sorts: [
+export const getPublishedPosts = async (params?: GetPublishedPostsParams) => {
+  const dataSourceId = await getDataSourceId();
+  const tag = params?.tag || '전체';
+  const sort = params?.sort || 'latest';
+  const response = await notion.dataSources.query({
+    data_source_id: dataSourceId,
+    in_trash: false,
+    filter: {
+      and: [
         {
-          property: 'Date',
-          direction: sort === 'latest' ? 'descending' : 'ascending',
+          property: 'Status',
+          select: {
+            equals: 'Published',
+          },
         },
+        ...(tag && tag !== '전체'
+          ? [
+              {
+                property: 'Tags',
+                multi_select: {
+                  contains: tag,
+                },
+              },
+            ]
+          : []),
       ],
-      page_size: params?.page_size,
-      start_cursor: params?.start_cursor,
-    });
+    },
+    sorts: [
+      {
+        property: 'Date',
+        direction: sort === 'latest' ? 'descending' : 'ascending',
+      },
+    ],
+    page_size: params?.page_size,
+    start_cursor: params?.start_cursor,
+  });
 
-    const posts = response.results
-      .filter((page): page is PageObjectResponse => 'properties' in page)
-      .map(getPostMetadata);
-    return { posts, hasMore: response.has_more, next_cursor: response.next_cursor };
-  },
-  ['posts'],
-  { tags: ['posts'] }
-);
+  const posts = response.results
+    .filter((page): page is PageObjectResponse => 'properties' in page)
+    .map(getPostMetadata);
+  return { posts, hasMore: response.has_more, next_cursor: response.next_cursor };
+};
 
 function getPostMetadata(page: PageObjectResponse): Post {
   const { properties } = page;
@@ -132,22 +128,21 @@ export const getPostBySlug = async (
   slug: string
 ): Promise<{
   markdown: string;
-  post: Post;
+  post: Post | null;
 }> => {
   const dataSourceId = await getDataSourceId();
 
   const response = await notion.dataSources.query({
     data_source_id: dataSourceId,
+    in_trash: false,
     filter: {
       and: [
         {
           property: 'Slug',
-          type: 'rich_text',
           rich_text: { equals: slug },
         },
         {
           property: 'Status',
-          type: 'select',
           select: { equals: 'Published' },
         },
       ],
@@ -159,10 +154,13 @@ export const getPostBySlug = async (
   );
 
   if (!page) {
-    throw new Error(`Post not found: ${slug}`);
+    return {
+      markdown: '',
+      post: null,
+    };
   }
 
-  const mdBlocks = await n2m.pageToMarkdown(response.results[0].id);
+  const mdBlocks = await n2m.pageToMarkdown(page.id);
   const { parent } = n2m.toMarkdownString(mdBlocks);
 
   return {
@@ -204,11 +202,12 @@ export const getTags = async (): Promise<TagFilterItem[]> => {
 
 export interface CreatePostParams {
   title: string;
+  slug: string;
   tag: string;
   content: string;
 }
 
-export const createPost = async ({ title, tag, content }: CreatePostParams) => {
+export const createPost = async ({ title, slug, tag, content }: CreatePostParams) => {
   const response = await notion.pages.create({
     parent: {
       database_id: process.env.NOTION_DATABASE_ID!,
@@ -219,6 +218,15 @@ export const createPost = async ({ title, tag, content }: CreatePostParams) => {
           {
             text: {
               content: title,
+            },
+          },
+        ],
+      },
+      Slug: {
+        rich_text: [
+          {
+            text: {
+              content: slug,
             },
           },
         ],

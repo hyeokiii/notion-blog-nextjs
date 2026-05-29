@@ -1,7 +1,7 @@
 import { Card, CardContent } from './ui/card';
-import Image from 'next/image';
 import { Button } from './ui/button';
 import { Clapperboard, GitBranch, BookOpen, Camera } from 'lucide-react';
+import { ProfileImage } from './ProfileImage';
 
 const socialLinks = [
   {
@@ -30,13 +30,7 @@ export function ProfileSection() {
           <div className="flex justify-center">
             <div className="bg-muted rounded-full p-2">
               <div className="h-36 w-36 overflow-hidden rounded-full">
-                <Image
-                  src="/profile.png"
-                  alt="짐코딩"
-                  width={144}
-                  height={144}
-                  className="object-cover"
-                />
+                <ProfileImage />
               </div>
             </div>
           </div>

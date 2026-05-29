@@ -21,6 +21,7 @@ export function PostForm() {
     errors: {},
     formData: {
       title: '',
+      slug: '',
       tag: '',
       content: '',
     },
@@ -56,6 +57,22 @@ export function PostForm() {
             />
             {state?.errors?.title && (
               <p className="text-sm text-red-500">{state.errors.title[0]}</p>
+            )}
+          </div>
+
+          {/* Slug 입력 */}
+          <div className="mb-6 space-y-2">
+            <Label htmlFor="slug">Slug</Label>
+            <Input
+              id="slug"
+              name="slug"
+              placeholder="예: nextjs-app-router"
+              className="h-12"
+              defaultValue={state?.formData?.slug}
+            />
+            <p className="text-muted-foreground text-sm">URL 경로: /blog/입력한-slug</p>
+            {state?.errors?.slug && (
+              <p className="text-sm text-red-500">{state.errors.slug[0]}</p>
             )}
           </div>
 

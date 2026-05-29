@@ -10,15 +10,26 @@ import { Suspense } from 'react';
 
 import TagSectionSkeleton from '@/components/TagSectionSkeleton';
 import PostList from '@/components/features/blog/PostList';
+import { Metadata } from 'next';
 interface BlogProps {
   searchParams: Promise<{ tag?: string; sort?: string }>;
 }
+
+export const metadata: Metadata = {
+  title: '홈',
+  description: '프론트엔드 개발자 짐코딩의 블로그입니다. 개발 지식과 경험을 공유합니다.',
+  alternates: {
+    canonical: '/',
+  },
+};
+
+export const dynamic = 'force-dynamic';
 
 export default async function Blog({ searchParams }: BlogProps) {
   const { tag, sort } = await searchParams;
   const selectedTag = tag;
   const selectedSort = sort;
-  const tags = getTags();
+  const tags = await getTags();
 
   const postsPromise = await getPublishedPosts({ tag: selectedTag, sort: selectedSort });
 

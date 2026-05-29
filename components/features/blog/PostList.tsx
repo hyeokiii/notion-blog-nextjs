@@ -6,6 +6,7 @@ interface PostListProps {
   posts: Post[];
 }
 export default function PostList({ posts }: PostListProps) {
+  console.log(posts);
   return (
     <div className="grid gap-4">
       {posts.map((post, index) => (

@@ -19,6 +19,7 @@ export default function PostListSuspense({ postsPromise }: PostListProps) {
   const searchParams = useSearchParams();
   const tag = searchParams.get('tag') || '전체';
   const sort = searchParams.get('sort') || 'latest';
+  const pageSize = 2;
   const initialPage = use(postsPromise);
 
   const fetchPosts = async ({
@@ -38,6 +39,8 @@ export default function PostListSuspense({ postsPromise }: PostListProps) {
       params.set('startCursor', pageParam);
     }
 
+    params.set('pageSize', pageSize.toString());
+
     const response = await fetch(`/api/posts?${params.toString()}`);
 
     if (!response.ok) {
@@ -49,7 +52,7 @@ export default function PostListSuspense({ postsPromise }: PostListProps) {
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError, error } = useInfiniteQuery(
     {
-      queryKey: ['posts', tag, sort],
+      queryKey: ['posts', tag, sort, pageSize],
       queryFn: fetchPosts,
       initialPageParam: undefined as string | undefined,
       getNextPageParam: (lastPage) =>
